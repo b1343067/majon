@@ -4,31 +4,81 @@ import pandas as pd
 # 必須寫在第一行
 st.set_page_config(page_title="🀄 麻將結算神器", page_icon="🀄", layout="centered")
 
-# --- 注入美化 CSS (已經把隱藏頂部選單的雷包程式碼刪除) ---
+# ==========================================
+# 🎨 終極視覺強化 CSS (毛玻璃、發光、漸層)
+# ==========================================
 st.markdown("""
 <style>
-    /* 美化 Tabs 標籤頁，置中且字體放大 */
+    /* 隱藏頂部裝飾條 */
+    header {visibility: hidden;}
+
+    /* App 級別深色漸層背景 */
+    .stApp {
+        background: linear-gradient(135deg, #141e30, #243b55);
+    }
+
+    /* 側邊欄深色化 */
+    [data-testid="stSidebar"] {
+        background-color: #0f172a;
+    }
+
+    /* 🌟 毛玻璃記分板卡片 (Glassmorphism) */
+    div[data-testid="metric-container"] {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        padding: 20px 10px;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        text-align: center;
+        transition: all 0.3s ease !important;
+    }
+
+    /* 🌟 記分板滑鼠懸浮發光特效 */
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 25px rgba(0, 210, 255, 0.5) !important;
+        border-color: rgba(0, 210, 255, 0.7) !important;
+    }
+
+    /* 隱藏預設箭頭 */
+    div[data-testid="stMetricDelta"] svg { display: none; }
+
+    /* 🌟 標籤頁美化 (更像現代 App) */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 12px;
+        padding: 5px;
+        gap: 5px;
         justify-content: center;
     }
     .stTabs [data-baseweb="tab"] {
         font-size: 1.1rem;
         font-weight: 600;
         padding: 10px 20px;
-        border-radius: 8px 8px 0 0;
+        border-radius: 8px;
+        color: #8b9bb4;
+        transition: all 0.2s ease;
     }
-    
-    /* 美化 Metric 數字卡片 */
-    div[data-testid="metric-container"] {
-        background-color: transparent;
-        border: 1px solid #e2e8f0;
-        padding: 15px 10px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        text-align: center;
+    .stTabs [aria-selected="true"] {
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
     }
-    div[data-testid="stMetricDelta"] svg { display: none; }
+
+    /* 🌟 漸層主按鈕特效 */
+    button[kind="primary"] {
+        background: linear-gradient(45deg, #ff416c, #ff4b2b) !important;
+        border: none !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4) !important;
+        transition: all 0.3s ease !important;
+    }
+    button[kind="primary"]:hover {
+        transform: scale(1.02) !important;
+        box-shadow: 0 6px 20px rgba(255, 75, 43, 0.6) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -36,18 +86,16 @@ st.markdown("""
 if 'init' not in st.session_state:
     st.session_state.base = 100
     st.session_state.tai = 20
-    # 預設6個位子，空白代表沒人，系統會自動忽略
     st.session_state.names = ["東風", "南風", "西風", "北風", "", ""]
     st.session_state.balances = [0] * 6
     st.session_state.records = []
     st.session_state.init = True
 
 # ==========================================
-# 側邊欄 (Sidebar) - 收納所有雜亂的設定
+# 側邊欄 (Sidebar)
 # ==========================================
 with st.sidebar:
     st.title("⚙️ 遊戲設定")
-    st.caption("設定會即時自動套用")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -58,7 +106,6 @@ with st.sidebar:
     st.divider()
     
     st.subheader("👥 玩家名單")
-    st.caption("最多支援 6 人輪替。不填寫的欄位會自動隱藏，不參與結算。")
     for i in range(6):
         st.session_state.names[i] = st.text_input(
             f"座位 {i+1}", 
@@ -72,21 +119,19 @@ with st.sidebar:
         st.session_state.records = []
         st.rerun()
 
-# 取得目前有名字的玩家 (自動過濾掉名字空白的欄位)
 active_players = [(i, name) for i, name in enumerate(st.session_state.names) if name.strip()]
 
 # ==========================================
-# 主畫面 - 使用 Tabs 切換，保持畫面乾淨
+# 主畫面
 # ==========================================
 st.title("🀄 麻將結算神器")
 
-tab_board, tab_record, tab_history = st.tabs(["📊 戰況與結算", "📝 登記牌局", "📜 歷史對帳"])
+tab_board, tab_record, tab_history = st.tabs(["📊 戰況結算", "📝 登記牌局", "📜 歷史對帳"])
 
-# --- Tab 1: 戰況與結算 ---
+# --- Tab 1: 戰況結算 ---
 with tab_board:
     st.subheader("即時戰況餘額")
     
-    # 動態產生計分板，每排最多 3 個人
     cols = st.columns(3)
     for idx, (original_idx, name) in enumerate(active_players):
         bal = st.session_state.balances[original_idx]
@@ -98,8 +143,6 @@ with tab_board:
     st.divider()
     
     st.subheader("💸 最佳化轉帳清算")
-    st.caption("系統已自動抵銷債務，只需進行以下最少次數的轉帳即可結清。")
-    
     temp_bal = [{"name": name, "bal": st.session_state.balances[idx]} for idx, name in active_players]
     creditors = sorted([p for p in temp_bal if p["bal"] > 0], key=lambda x: x["bal"], reverse=True)
     debtors = sorted([p for p in temp_bal if p["bal"] < 0], key=lambda x: x["bal"])
@@ -115,7 +158,7 @@ with tab_board:
                 
                 transfer = min(-debtor["bal"], creditor["bal"])
                 if transfer > 0:
-                    st.success(f"**{debtor['name']}** 應轉帳給 👑 **{creditor['name']}** ➔ **{transfer} 元**")
+                    st.success(f"**{debtor['name']}** ➔ 轉給 👑 **{creditor['name']}** : **{transfer} 元**")
                     
                 creditor["bal"] -= transfer
                 debtor["bal"] += transfer
@@ -127,7 +170,6 @@ with tab_board:
 with tab_record:
     with st.container(border=True):
         st.subheader("1. 選擇輸贏家")
-        # 準備選單選項
         player_options = [p[1] for p in active_players]
         
         c1, c2, c3 = st.columns(3)
@@ -141,8 +183,6 @@ with tab_record:
 
     with st.container(border=True):
         st.subheader("2. 台數計算機")
-        
-        # 常見台數字典
         tai_dict = {
             "莊家/連莊 (+1)": 1, "門清 (+1)": 1, "自摸 (+1)": 1, 
             "平胡 (+2)": 2, "三暗刻 (+2)": 2, "全求人 (+2)": 2,
@@ -163,23 +203,19 @@ with tab_record:
     if st.button("✅ 結算此局並登記", type="primary", use_container_width=True):
         amount = st.session_state.base + (total_tai * st.session_state.tai)
         
-        # 找出對應的原始 index
         winner_idx = next(i for i, name in active_players if name == winner_name)
         loser_idx = next(i for i, name in active_players if name == loser_name) if win_type == "放槍" else None
         
         if win_type == "自摸":
-            # 贏家拿(人數-1)份，其餘在場者各扣1份
             in_game_count = len(active_players)
             st.session_state.balances[winner_idx] += amount * (in_game_count - 1)
             for i, name in active_players:
                 if i != winner_idx:
                     st.session_state.balances[i] -= amount
         else:
-            # 放槍
             st.session_state.balances[winner_idx] += amount
             st.session_state.balances[loser_idx] -= amount
             
-        # 紀錄
         st.session_state.records.append({
             "贏家": winner_name,
             "方式": win_type,
@@ -188,7 +224,10 @@ with tab_record:
             "金額變動": f"每家 -{amount}" if win_type == "自摸" else f"苦主 -{amount}"
         })
         
-        # 顯示小彈窗通知，並強制瞬間重整網頁
+        # 🌟 隱藏彩蛋：大牌慶祝特效
+        if total_tai >= 5:
+            st.balloons()
+            
         st.toast("✅ 登記成功！已更新戰況")
         st.rerun()
 
