@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import urllib.parse  # 處理 LINE 網址文字編碼的新工具
 
 # 必須寫在第一行
 st.set_page_config(page_title="麻將結算大師", page_icon="🀄", layout="centered")
@@ -7,7 +8,7 @@ st.set_page_config(page_title="麻將結算大師", page_icon="🀄", layout="ce
 # --- 注入美化 CSS (修復手機版側邊欄按鈕消失的問題) ---
 st.markdown("""
 <style>
-    /* 將頂部裝飾條變透明，保留手機版的展開按鈕！ */
+    /* 將頂部裝飾條變透明，保留手機版的展開按鈕 */
     header {background: transparent !important;}
 
     /* 極簡淺色背景與字體 */
@@ -214,6 +215,69 @@ with tab_board:
                 st.info(f"🌱 慈善撲克王\n\n**{big_loser['name']}** ({big_loser['bal']})")
             with h6:
                 st.info(f"📊 全場平均台數\n\n**{avg_tai:.1f} 台**")
+                
+            # ==========================================
+            # 🌟 新增：一鍵 LINE 群組請款功能
+            # ==========================================
+            st.divider()
+            
+            # 1. 重新抓取乾淨的餘額來計算轉帳 (避免被上面的清算吃掉數字)
+            line_temp_bal = [{"name": name, "bal": st.session_state.balances[idx]} for idx, name in active_players]
+            line_creditors = sorted([p for p in line_temp_bal if p["bal"] > 0], key=lambda x: x["bal"], reverse=True)
+            line_debtors = sorted([p for p in line_temp_bal if p["bal"] < 0], key=lambda x: x["bal"])
+
+            # 2. 組合 LINE 討債文字
+            line_msg = "【🀄 今晚麻將終場結算單】\n"
+            line_msg += f"👑 大贏家：{big_winner['name']} (+{big_winner['bal']}元)\n"
+            line_msg += f"🌱 大善人：{big_loser['name']} ({big_loser['bal']}元)\n"
+            line_msg += "-" * 15 + "\n"
+            line_msg += "💸 轉帳明細：\n"
+            
+            has_debt = False
+            c_idx, d_idx = 0, 0
+            while c_idx < len(line_creditors) and d_idx < len(line_debtors):
+                creditor = line_creditors[c_idx]
+                debtor = line_debtors[d_idx]
+                transfer = min(-debtor["bal"], creditor["bal"])
+                if transfer > 0:
+                    line_msg += f"👉 {debtor['name']} 應轉給 {creditor['name']}： {transfer} 元\n"
+                    has_debt = True
+                creditor["bal"] -= transfer
+                debtor["bal"] += transfer
+                if abs(creditor["bal"]) < 0.1: c_idx += 1
+                if abs(debtor["bal"]) < 0.1: d_idx += 1
+                
+            if not has_debt:
+                line_msg += "大家平手，今晚無金錢交易！\n"
+                
+            line_msg += "-" * 15 + "\n"
+            line_msg += "（此訊息由 麻將結算神器 自動生成）"
+
+            # 3. 將文字編碼並產生綠色按鈕
+            encoded_msg = urllib.parse.quote(line_msg)
+            line_url = f"https://line.me/R/msg/text/?{encoded_msg}"
+            
+            st.markdown(
+                f"""
+                <a href="{line_url}" target="_blank" style="
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                    background-color: #06C755;
+                    color: white;
+                    padding: 12px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    font-size: 1.1rem;
+                    box-shadow: 0 4px 6px rgba(6, 199, 85, 0.2);
+                    transition: opacity 0.2s;
+                ">
+                    💬 一鍵傳送結算單至 LINE 群組
+                </a>
+                """, 
+                unsafe_allow_html=True
+            )
 
 # --- Tab 2: 登記牌局 ---
 with tab_record:
