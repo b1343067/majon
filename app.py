@@ -4,12 +4,9 @@ import pandas as pd
 # 必須寫在第一行
 st.set_page_config(page_title="🀄 麻將結算神器", page_icon="🀄", layout="centered")
 
-# --- 隱藏預設選單與注入美化 CSS ---
+# --- 注入美化 CSS (已經把隱藏頂部選單的雷包程式碼刪除了！) ---
 st.markdown("""
 <style>
-    /* 隱藏頂部裝飾條，讓畫面更像 App */
-    header {visibility: hidden;}
-    
     /* 美化 Tabs 標籤頁，置中且字體放大 */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
@@ -24,7 +21,7 @@ st.markdown("""
     
     /* 美化 Metric 數字卡片 */
     div[data-testid="metric-container"] {
-        background-color: #ffffff;
+        background-color: transparent;
         border: 1px solid #e2e8f0;
         padding: 15px 10px;
         border-radius: 12px;
