@@ -4,11 +4,11 @@ import pandas as pd
 # 必須寫在第一行
 st.set_page_config(page_title="麻將結算大師", page_icon="🀄", layout="centered")
 
-# --- 注入美化 CSS (維持 Apple/無印良品極簡質感，去除花哨發光) ---
+# --- 注入美化 CSS (修復手機版側邊欄按鈕消失的問題) ---
 st.markdown("""
 <style>
-    /* 隱藏頂部裝飾條 */
-    header {visibility: hidden;}
+    /* 將頂部裝飾條變透明，保留手機版的展開按鈕！ */
+    header {background: transparent !important;}
 
     /* 極簡淺色背景與字體 */
     .stApp {
@@ -80,7 +80,7 @@ if 'init' not in st.session_state:
     st.session_state.balances = [0] * 6
     st.session_state.records = []
     st.session_state.chart_history = [] 
-    st.session_state.show_final = False # 用來控制終場結算是否顯示的開關
+    st.session_state.show_final = False 
     st.session_state.init = True
 
 # ==========================================
@@ -122,7 +122,6 @@ active_players = [(i, name) for i, name in enumerate(st.session_state.names) if 
 # ==========================================
 st.markdown("<h2 style='text-align: center; color: #111827; margin-bottom: 20px;'>麻將結算</h2>", unsafe_allow_html=True)
 
-# 簡增成三個主要分頁，終場結算移入第一個分頁中
 tab_board, tab_record, tab_history = st.tabs(["戰況結算", "登記牌局", "歷史對帳"])
 
 # --- Tab 1: 戰況結算 ---
@@ -161,34 +160,29 @@ with tab_board:
 
     st.divider()
     
-    # 🌟 核心改動：在戰況選單下方加入終場大按鈕
     if not st.session_state.records:
         st.caption("暫無歷史數據，登記單局後即可解鎖終場大數據統計。")
     else:
-        # 如果目前沒有展開，顯示「解鎖」按鈕
         if not st.session_state.show_final:
             if st.button("🏆 展開今晚終場大數據總結算", type="primary", use_container_width=True):
                 st.session_state.show_final = True
-                st.balloons() # 點下去瞬間噴發慶祝氣球
+                st.balloons() 
                 st.rerun()
         else:
             if st.button("🔼 收合終場大數據統計", use_container_width=True):
                 st.session_state.show_final = False
                 st.rerun()
 
-        # 🌟 如果開關打開，就在下方直接「長出來」大數據結果！
         if st.session_state.show_final and st.session_state.records:
             st.write("")
             st.markdown("<h3 style='text-align: center; color: #111827;'>📊 終場大數據報告</h3>", unsafe_allow_html=True)
             
-            # 1. 走勢圖
             st.markdown("##### 📈 籌碼運勢走勢圖")
             df_chart = pd.DataFrame(st.session_state.chart_history)
             zero_start = {name: 0 for _, name in active_players}
             df_chart = pd.concat([pd.DataFrame([zero_start]), df_chart], ignore_index=True)
             st.line_chart(df_chart)
             
-            # 2. 英雄榜數據計算
             winners = [r["贏家"] for r in st.session_state.records]
             losers = [r["苦主"] for r in st.session_state.records if r["方式"] == "放槍"]
             self_draws = [r["贏家"] for r in st.session_state.records if r["方式"] == "自摸"]
