@@ -4,7 +4,7 @@ import pandas as pd
 # 必須寫在第一行
 st.set_page_config(page_title="🀄 麻將結算神器", page_icon="🀄", layout="centered")
 
-# --- 注入美化 CSS (已經把隱藏頂部選單的雷包程式碼刪除了！) ---
+# --- 注入美化 CSS (已經把隱藏頂部選單的雷包程式碼刪除) ---
 st.markdown("""
 <style>
     /* 美化 Tabs 標籤頁，置中且字體放大 */
@@ -187,7 +187,10 @@ with tab_record:
             "台數": total_tai,
             "金額變動": f"每家 -{amount}" if win_type == "自摸" else f"苦主 -{amount}"
         })
-        st.success("✅ 登記成功！請切換到「📊 戰況與結算」查看最新金額。")
+        
+        # 顯示小彈窗通知，並強制瞬間重整網頁
+        st.toast("✅ 登記成功！已更新戰況")
+        st.rerun()
 
 # --- Tab 3: 歷史對帳 ---
 with tab_history:
