@@ -1,102 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-# 必須寫在第一行，預設把側邊欄打開
-st.set_page_config(page_title="麻將結算神器", page_icon="🀄", layout="centered", initial_sidebar_state="expanded")
-
-# ==========================================
-# 🎨 V5 尊爵黑金奢華風 CSS (VIP Casino Style)
-# ==========================================
-st.markdown("""
-<style>
-    /* 讓頂部裝飾條變透明，保留選單按鈕但不突兀 */
-    header {background: transparent !important;}
-
-    /* 奢華黑漸層背景 */
-    .stApp {
-        background: radial-gradient(circle at 50% 0%, #2b2b2b, #111111, #000000);
-        color: #E8E8E8;
-    }
-
-    /* 側邊欄深邃質感 */
-    [data-testid="stSidebar"] {
-        background-color: #141414;
-        border-right: 1px solid #D4AF37; /* 香檳金邊框 */
-    }
-
-    /* 👑 奢華金邊記分板卡片 */
-    div[data-testid="metric-container"] {
-        background: linear-gradient(145deg, #1f1f1f, #121212) !important;
-        border: 1px solid #D4AF37 !important;
-        padding: 20px 10px;
-        border-radius: 12px;
-        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.15) !important;
-        text-align: center;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3) !important;
-    }
-    
-    /* 讓玩家名字和數字呈現金色質感 */
-    div[data-testid="metric-container"] label {
-        color: #F3E5AB !important; /* 柔和淺金 */
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #D4AF37 !important; /* 香檳金 */
-        font-weight: 800;
-    }
-    div[data-testid="stMetricDelta"] svg { display: none; }
-
-    /* 👑 奢華金標籤頁 */
-    .stTabs [data-baseweb="tab-list"] {
-        background: transparent;
-        border-bottom: 1px solid #333;
-        gap: 20px;
-        justify-content: center;
-    }
-    .stTabs [data-baseweb="tab"] {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #666;
-        background: transparent;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #D4AF37 !important;
-        border-bottom: 2px solid #D4AF37 !important;
-        text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-    }
-
-    /* 👑 金屬光澤主按鈕 */
-    button[kind="primary"] {
-        background: linear-gradient(45deg, #B8860B, #FFD700, #DAA520) !important;
-        color: #111111 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 800 !important;
-        font-size: 1.1rem !important;
-        box-shadow: 0 4px 15px rgba(218, 165, 32, 0.4) !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease !important;
-    }
-    button[kind="primary"]:hover {
-        transform: scale(1.02) !important;
-        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6) !important;
-    }
-
-    /* 標題與分隔線美化 */
-    h1, h2, h3 {
-        color: #D4AF37 !important;
-    }
-    hr {
-        border-color: rgba(212, 175, 55, 0.2) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+# 必須寫在第一行
+st.set_page_config(page_title="麻將結算神器", page_icon="🀄", layout="centered")
 
 # --- 狀態初始化 ---
 if 'init' not in st.session_state:
@@ -111,7 +17,7 @@ if 'init' not in st.session_state:
 # 側邊欄 (Sidebar)
 # ==========================================
 with st.sidebar:
-    st.markdown("### ⚙️ 遊戲設定")
+    st.title("⚙️ 遊戲設定")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -121,7 +27,7 @@ with st.sidebar:
         
     st.divider()
     
-    st.markdown("### 👥 玩家名單")
+    st.subheader("👥 玩家名單")
     st.caption("留白即隱藏，不參與結算。")
     for i in range(6):
         st.session_state.names[i] = st.text_input(
@@ -142,7 +48,7 @@ active_players = [(i, name) for i, name in enumerate(st.session_state.names) if 
 # ==========================================
 # 主畫面
 # ==========================================
-st.markdown("<h1 style='text-align: center; margin-bottom: 10px; text-shadow: 0px 2px 10px rgba(212,175,55,0.3);'>🀄 皇家麻將結算中心</h1>", unsafe_allow_html=True)
+st.title("🀄 麻將結算神器")
 
 tab_board, tab_record, tab_history = st.tabs(["📊 戰況結算", "📝 登記牌局", "📜 歷史對帳"])
 
@@ -152,20 +58,19 @@ with tab_board:
     cols = st.columns(3)
     for idx, (original_idx, name) in enumerate(active_players):
         bal = st.session_state.balances[original_idx]
-        # 金色主題下，贏錢顯示正號，輸錢顯示負號，不再硬上紅綠色
         delta_str = f"+{bal}" if bal > 0 else str(bal)
         with cols[idx % 3]:
-            st.metric(label=name, value=bal, delta=delta_str if bal!=0 else "平手", delta_color="off")
+            st.metric(label=name, value=bal, delta=delta_str if bal!=0 else "平手")
 
     st.divider()
     
-    st.markdown("### 💸 最佳化轉帳清算")
+    st.subheader("💸 最佳化轉帳清算")
     temp_bal = [{"name": name, "bal": st.session_state.balances[idx]} for idx, name in active_players]
     creditors = sorted([p for p in temp_bal if p["bal"] > 0], key=lambda x: x["bal"], reverse=True)
     debtors = sorted([p for p in temp_bal if p["bal"] < 0], key=lambda x: x["bal"])
 
     if not creditors or not debtors:
-        st.info("🥂 目前大家平手或無戰況，暫不需進行任何轉帳！")
+        st.info("目前大家平手或無戰況，暫不需進行任何轉帳！")
     else:
         c_idx, d_idx = 0, 0
         with st.container(border=True):
@@ -175,7 +80,7 @@ with tab_board:
                 
                 transfer = min(-debtor["bal"], creditor["bal"])
                 if transfer > 0:
-                    st.success(f"💸 **{debtor['name']}** ➔ 轉給 👑 **{creditor['name']}** ： **{transfer} 元**")
+                    st.success(f"**{debtor['name']}** ➔ 轉給 👑 **{creditor['name']}** ： **{transfer} 元**")
                     
                 creditor["bal"] -= transfer
                 debtor["bal"] += transfer
@@ -187,7 +92,7 @@ with tab_board:
 with tab_record:
     st.write("") 
     
-    st.markdown("#### 1. 輸贏設定")
+    st.markdown("**1. 輸贏設定**")
     player_options = [p[1] for p in active_players]
     
     c1, c2, c3 = st.columns(3)
@@ -200,7 +105,7 @@ with tab_record:
         loser_name = st.selectbox("😭 苦主", options=loser_options, disabled=(win_type=="自摸"))
 
     st.write("")
-    st.markdown("#### 2. 台數計算")
+    st.markdown("**2. 台數計算**")
     tai_dict = {
         "莊家 (+1)": 1, "門清 (+1)": 1, "自摸 (+1)": 1, 
         "平胡 (+2)": 2, "三暗刻 (+2)": 2, "全求人 (+2)": 2,
@@ -208,7 +113,7 @@ with tab_record:
         "清一色 (+8)": 8, "大三元 (+8)": 8
     }
     
-    selected_tais = st.multiselect("☑️ 快速台數 (可複選)", options=list(tai_dict.keys()), label_visibility="collapsed")
+    selected_tais = st.multiselect("快速台數 (可複選)", options=list(tai_dict.keys()), label_visibility="collapsed")
     auto_tai = sum([tai_dict[k] for k in selected_tais])
     
     c4, c5 = st.columns([2, 1])
@@ -219,7 +124,7 @@ with tab_record:
         st.metric("總計台數", f"{total_tai} 台")
 
     st.write("")
-    if st.button("⚜️ 確認登記此局 ⚜️", type="primary", use_container_width=True):
+    if st.button("確認登記此局", type="primary", use_container_width=True):
         amount = st.session_state.base + (total_tai * st.session_state.tai)
         
         winner_idx = next(i for i, name in active_players if name == winner_name)
@@ -243,11 +148,7 @@ with tab_record:
             "異動": f"-{amount} /家" if win_type == "自摸" else f"-{amount}"
         })
         
-        # 胡大牌 (大於等於 5 台) 一樣噴發彩蛋！
-        if total_tai >= 5:
-            st.balloons()
-            
-        st.toast("🍾 登記成功！戰況已更新")
+        st.toast("✅ 登記成功！戰況已更新")
         st.rerun()
 
 # --- Tab 3: 歷史對帳 ---
