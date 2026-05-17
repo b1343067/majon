@@ -4,7 +4,48 @@ import pandas as pd
 # --- 網頁基本設定 ---
 st.set_page_config(page_title="🀄 麻將結算神器", page_icon="🀄", layout="centered")
 
-# --- 初始化 Session State (確保重新整理資料還在) ---
+# ==========================================
+# 🎨 注入 CSS 魔法美化介面
+# ==========================================
+st.markdown("""
+<style>
+    /* 整體背景微調為質感淺灰藍 */
+    .stApp {
+        background-color: #f5f7fa;
+    }
+    
+    /* 記分板卡片化 (圓角、陰影、置中) */
+    div[data-testid="metric-container"] {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 15px 10px;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+        text-align: center;
+    }
+    
+    /* 隱藏 Metric 預設的箭頭圖示，讓畫面更乾淨 */
+    div[data-testid="stMetricDelta"] svg {
+        display: none;
+    }
+
+    /* 讓 Expander (設定區) 也變成圓角卡片 */
+    div[data-testid="stExpander"] {
+        background-color: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    /* 自訂分隔線樣式 */
+    hr {
+        border-top: 2px dashed #cbd5e0;
+        margin: 2em 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 初始化 Session State ---
 if 'initialized' not in st.session_state:
     st.session_state.base_money = 100
     st.session_state.tai_money = 20
@@ -13,7 +54,7 @@ if 'initialized' not in st.session_state:
     st.session_state.records = []
     st.session_state.initialized = True
 
-st.title("🀄 麻將結算神器 V2 (Streamlit 版)")
+st.title("🀄 麻將結算神器 V2")
 
 # --- 1. 基本設定區 ---
 with st.expander("⚙️ 玩家與底台設定", expanded=False):
@@ -27,9 +68,9 @@ with st.expander("⚙️ 玩家與底台設定", expanded=False):
     cols = st.columns(5)
     for i in range(5):
         with cols[i]:
-            st.session_state.players[i] = st.text_input(f"玩家 {i+1}", value=st.session_state.players[i], key=f"p_{i}")
+            st.session_state.players[i] = st.text_input(f"玩家 {i+1}", value=st.session_state.players[i], key=f"p_{i}", label_visibility="collapsed")
             
-    if st.button("🚨 清除所有紀錄重來", type="primary"):
+    if st.button("🚨 清除所有紀錄重來", type="primary", use_container_width=True):
         st.session_state.balances = [0, 0, 0, 0, 0]
         st.session_state.records = []
         st.rerun()
@@ -40,9 +81,10 @@ score_cols = st.columns(5)
 for i in range(5):
     with score_cols[i]:
         bal = st.session_state.balances[i]
-        # 贏錢顯示紅色(正常)，輸錢顯示綠色(反向)
-        color = "normal" if bal == 0 else ("normal" if bal > 0 else "inverse")
-        st.metric(label=st.session_state.players[i], value=f"{bal}", delta=bal if bal != 0 else None, delta_color=color)
+        # 贏錢紅字，輸錢綠字 (台灣股市邏輯)
+        delta_val = f"+{bal}" if bal > 0 else str(bal)
+        color = "off" if bal == 0 else ("normal" if bal > 0 else "inverse")
+        st.metric(label=st.session_state.players[i], value=f"{bal}", delta=delta_val if bal != 0 else "平手", delta_color=color)
 
 st.divider()
 
@@ -63,27 +105,26 @@ with col_a:
 with col_b:
     win_type = st.selectbox("🎲 胡牌方式", options=["放槍", "自摸"])
 with col_c:
-    # 如果是放槍才需要選輸家，且輸家不能是贏家
+    # 放槍才選輸家
     loser_options = [k for k in active_keys if k != winner_idx]
     loser_idx = st.selectbox("😭 放槍苦主", options=loser_options, format_func=lambda x: active_players[x], disabled=(win_type=="自摸"))
 with col_d:
     tai_count = st.number_input("🔢 台數", value=1, min_value=0, step=1)
 
-if st.button("✅ 填入並計算此局", use_container_width=True):
+if st.button("✅ 填入並計算此局", type="primary", use_container_width=True):
     amount = st.session_state.base_money + (tai_count * st.session_state.tai_money)
     changes = [0]*5
     
     if win_type == "自摸":
         for i in range(5):
-            if i == resting_idx:
-                continue
+            if i == resting_idx: continue
             if i == winner_idx:
                 changes[i] += amount * 3
                 st.session_state.balances[i] += amount * 3
             else:
                 changes[i] -= amount
                 st.session_state.balances[i] -= amount
-    else: # 放槍
+    else: 
         changes[winner_idx] += amount
         st.session_state.balances[winner_idx] += amount
         changes[loser_idx] -= amount
@@ -95,7 +136,7 @@ if st.button("✅ 填入並計算此局", use_container_width=True):
         "苦主/輸家": "其餘三家" if win_type == "自摸" else st.session_state.players[loser_idx],
         "休息": st.session_state.players[resting_idx],
         "台數": tai_count,
-        "金額異動": f"每家 -{amount} (贏家 +{amount*3})" if win_type == "自摸" else f"苦主 -{amount} (贏家 +{amount})"
+        "金額異動": f"每家 -{amount} (贏家共 +{amount*3})" if win_type == "自摸" else f"苦主 -{amount} (贏家 +{amount})"
     })
     st.rerun()
 
@@ -130,14 +171,7 @@ st.header("📜 歷史牌局對帳表")
 if st.session_state.records:
     # 反轉順序讓最新的一局在最上面
     df = pd.DataFrame(reversed(st.session_state.records))
-    df.index = [len(st.session_state.records) - i for i in range(len(st.session_state.records))]
-    st.dataframe(df, use_container_width=True)
-    
-    if st.button("🔙 撤銷上一局"):
-        # 簡單的防呆，直接清空重算最保險，這邊為了簡單示範，我們做一個簡單的 Pop 倒扣
-        last_rec_idx = len(st.session_state.records) - 1
-        # 因為牽扯到複雜的回溯，如果真要撤銷，建議配合完整的資料結構。
-        # 這裡提供一鍵重整功能。
-        st.warning("如需修改，建議點擊最上方『清除所有紀錄重來』。")
+    # 美化表格：隱藏左側 Index 數字，並讓表格自動撐滿寬度
+    st.dataframe(df, use_container_width=True, hide_index=True)
 else:
     st.caption("目前尚無任何牌局對帳紀錄。")
